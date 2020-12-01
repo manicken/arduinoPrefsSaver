@@ -32,11 +32,13 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
-
+import java.util.prefs.Preferences;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JMenuBar;
+import javax.swing.MenuElement;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -49,8 +51,14 @@ import processing.app.Editor;
 import processing.app.tools.Tool;
 import processing.app.Sketch;
 import processing.app.PreferencesData;
+import processing.app.helpers.PreferencesMap;
+import java.util.Map;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 
-//import static processing.app.I18n.tr;
+
+import static processing.app.I18n.tr;
 
 import com.manicken.MyPreferencesData;
 import com.manicken.SelectionDialog;
@@ -62,6 +70,9 @@ import com.manicken.Reflect;
 public class manickenPrefSaver implements Tool {
 	boolean debugPrint = false;
 
+	boolean useSeparateExtensionsMainMenu = true; // good for development for quick access
+
+	Base base;// for the API uses reflection to get
 	Editor editor;// for the plugin
 	Sketch sketch; // for the plugin
 
@@ -78,7 +89,7 @@ public class manickenPrefSaver implements Tool {
 	
 	public void init(Editor editor) { // required by tool loader
 		this.editor = editor;
-		myPrefs = new MyPreferencesData();
+		
 
 		editor.addWindowListener(new WindowAdapter() {
 			public void windowOpened(WindowEvent e) {
@@ -86,6 +97,17 @@ public class manickenPrefSaver implements Tool {
 			}
 		});
 		
+	}
+
+	private void PrintCurrentPreferencesMap()
+	{
+		PreferencesMap pm = PreferencesData.getMap();
+		String[] keys = pm.keySet().toArray(new String[0]);
+		Arrays.sort(keys);
+		for (String key : keys) {
+			
+			System.out.println(key + "=" + pm.get(key));
+		}
 	}
 
 	public void run() {// required by tool loader
@@ -98,7 +120,19 @@ public class manickenPrefSaver implements Tool {
 
 	private void Activate()
 	{
-		
+		//PrintCurrentPreferencesMap();
+		PreferencesMap pm = PreferencesData.getMap();
+		String[] keys = pm.keySet().toArray(new String[0]);
+		Arrays.sort(keys);
+		StringBuilder sb = new StringBuilder();
+		for (String key : keys) {
+			if (key.startsWith("serial.") || 
+				key.startsWith("target_") ||
+				key.startsWith("custom_") ||
+				key.equals("board"))
+				sb.append(key + "=" + pm.get(key) + "\r\n");
+		}
+		saveFile(prefsFileName, sb.toString());
 	}
 
 	private void Deactivate()
@@ -113,16 +147,24 @@ public class manickenPrefSaver implements Tool {
 
 	private void init() {
 		System.out.println("init manicken Preferences Saver");
-		//System.out.println("BaseNoGui.getToolsFolder()=" + BaseNoGui.getToolsFolder());
-		//System.out.println("BaseNoGui.getSketchbookFolder()=" + BaseNoGui.getSketchbookFolder());
-		
-		
-		//rootDir = GetArduinoRootDir();
-		//System.out.println("rootDir="+rootDir);
+
 		try{
-			sketch = this.editor.getSketch();
 			
-			initMenu();
+			base = (Base) Reflect.GetField("base", this.editor);
+			
+			if (useSeparateExtensionsMainMenu)
+				initAtSeparateExtensionsMenu();
+			else
+				initAtToolsMenu();
+
+				
+				sketch = this.editor.getSketch();
+
+				myPrefs = new MyPreferencesData();
+
+				LoadPrevPreferences();
+
+
 
 			started = true;
 
@@ -133,15 +175,74 @@ public class manickenPrefSaver implements Tool {
 		}
 	}
 
-	private void initMenu()
+	private void LoadPrevPreferences()
+	{
+		File file = new File(sketch.getFolder() + "/" + prefsFileName);
+		if (file.exists())
+		{
+			System.out.println("sketch pref file exists");
+			myPrefs.init(file);
+			myPrefs.mergeIntoGlobalPreferences();
+			//toolsMenu = (JMenu) Reflect.GetField("toolsMenu", this.editor);
+			//base.getBoardsCustomMenus().stream().forEach(toolsMenu::add);
+			try {
+				base.rebuildBoardsMenu(); // throws exception
+
+				base.onBoardOrPortChange();
+				base.rebuildImportMenu((JMenu)Reflect.GetStaticField("importMenu", Editor.class));
+        		base.rebuildExamplesMenu((JMenu)Reflect.GetStaticField("examplesMenu", Editor.class));
+       			base.rebuildProgrammerMenu();
+			}
+			catch (Exception e)
+			{
+
+			}
+		}
+	}
+
+
+	private void initAtSeparateExtensionsMenu()
+	{
+		JMenuBar menubar = editor.getJMenuBar();
+		int existingExtensionsMenuIndex = GetMenuBarItemIndex(menubar, tr("Extensions"));
+		int toolsMenuIndex = GetMenuBarItemIndex(menubar, tr("Tools"));
+		JMenu extensionsMenu = null;
+		
+		if (existingExtensionsMenuIndex == -1)
+			extensionsMenu = new JMenu(tr("Extensions"));
+		else
+			extensionsMenu = (JMenu)menubar.getSubElements()[existingExtensionsMenuIndex];
+
+		JMenu thisToolMenu = new JMenu(thisToolMenuTitle);	
+
+		if (existingExtensionsMenuIndex == -1)
+			menubar.add(extensionsMenu, toolsMenuIndex+1);
+		menubar.revalidate(); // "repaint" menu bar with the new item
+		extensionsMenu.add(thisToolMenu);
+		// create new special menu
+		CreatePluginMenu(thisToolMenu);
+
+		// remove original menu at the moment sometimes buggy
+		//JMenu toolsMenu = (JMenu) Reflect.GetField("toolsMenu", this.editor);
+		//int thisToolMenuIndex = GetMenuItemIndex(toolsMenu, thisToolMenuTitle);
+		//toolsMenu.remove(thisToolMenuIndex);
+		//toolsMenu.revalidate();
+	}
+
+	private void initAtToolsMenu()
 	{
 		toolsMenu = (JMenu) Reflect.GetField("toolsMenu", this.editor);
-
 		int thisToolIndex = GetMenuItemIndex(toolsMenu, thisToolMenuTitle);
-		JMenu thisToolMenu = new JMenu(thisToolMenuTitle);		
-		toolsMenu.insert(thisToolMenu, thisToolIndex+1);
+		JMenu thisToolMenu = new JMenu(thisToolMenuTitle);
+		// create new special menu
+		CreatePluginMenu(thisToolMenu);
+		// replace original menu
 		toolsMenu.remove(thisToolIndex);
-		
+		toolsMenu.insert(thisToolMenu, thisToolIndex);
+	}
+
+	private void CreatePluginMenu(JMenu thisToolMenu)
+	{
 		JMenuItem newItem = null;
 
 		newItem = new JMenuItem("Activate/SaveCurrent");
@@ -183,36 +284,33 @@ public class manickenPrefSaver implements Tool {
 		return -1;
 	}
 
-	public String GetArduinoRootDir() {
-		try {
-			File file = BaseNoGui.getToolsFolder();//new File(API_WebServer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-			return file.getParentFile().getAbsolutePath();//.getParentFile().getParentFile().getParent();
-		} catch (Exception e) { e.printStackTrace(); return ""; }
-	}
+	/**
+	 * Experimental way of getting tools menu, not working at the moment
+	 * @param menuBar
+	 * @param name
+	 * @return
+	 */
+	public int GetMenuBarItemIndex(JMenuBar menuBar, String name) {
+		//System.out.println("try get menu: " + name);
+		MenuElement[] items = menuBar.getSubElements();
+		for ( int i = 0; i < items.length; i++) {
+			//System.out.println("try get menu item @ " + i);
+			JMenu menu = (JMenu)items[i];
+			if (items[i] == null) continue; // happens on seperators
 
-	public String GetJarFileDir() {
-		try {
-			File file = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
-			return file.getParent();
-		}catch (Exception e) { e.printStackTrace(); return ""; }
-	}
+			//System.out.println("menu.getText(): "+ menu.getText());
 
-	public String loadFile(String name) {
-		File file = new File(sketch.getFolder(), name);
-		boolean exists = file.exists();
-		if (exists) {
-			
-			try {
-				String content = new Scanner(file).useDelimiter("\\Z").next();
-				return content;
-			} catch (Exception e) { e.printStackTrace(); return ""; }
+			if (menu.getText() == name)
+				return i;
 		}
-		else {
-			System.out.println(name + " file not found!");
-			return "";
-		}
+		return -1;
 	}
 
+	/**
+	 * Just a simplifier to load files from the sketch folder
+	 * @param name
+	 * @param contents
+	 */
 	public void saveFile(String name, String contents) {
 		try {
             // Constructs a FileWriter given a file name, using the platform's default charset
@@ -221,6 +319,4 @@ public class manickenPrefSaver implements Tool {
 			file.close();
         } catch (IOException e) { e.printStackTrace(); }
 	}
-
-	
 }

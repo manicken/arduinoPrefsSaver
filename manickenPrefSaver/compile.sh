@@ -44,6 +44,7 @@ function doStuff {
     else
         echo Compile error
     fi
+	cleanPrevBinFiles
 }
 
 doStuff

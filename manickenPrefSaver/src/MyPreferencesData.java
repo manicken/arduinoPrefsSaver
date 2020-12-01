@@ -10,6 +10,7 @@ import processing.app.helpers.PreferencesHelper;
 import processing.app.helpers.PreferencesMap;
 import processing.app.legacy.PApplet;
 import processing.app.legacy.PConstants;
+import processing.app.PreferencesData;
 
 import java.awt.*;
 import java.io.File;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.MissingResourceException;
+import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
 import static processing.app.I18n.format;
@@ -83,9 +85,14 @@ public class MyPreferencesData {
         prefs.put(attribute, value);
       }
 
-    public void mergeInto(PreferencesMap prefs)
+    public void mergeIntoGlobalPreferences()
     {
-
+        String[] keys = prefs.keySet().toArray(new String[0]);
+        for (String key : keys) {
+            String value = prefs.get(key);
+            System.out.println("merging " + key +"="+ value);
+            PreferencesData.set(key, value);
+        }
     }
     
     public void save() {

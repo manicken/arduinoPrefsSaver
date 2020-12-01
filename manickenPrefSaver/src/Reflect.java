@@ -25,6 +25,21 @@ public class Reflect {
 		}
 	}
 
+	public static Object GetStaticField(String name, Class<?> src) {
+		try {
+			Field f = src.getDeclaredField(name);
+			f.setAccessible(true);
+			return f.get(null);
+
+		} catch (Exception e) {
+			System.err.println("****************************************");
+			System.err.println("************cannot reflect**************");
+			System.err.println("****************************************");
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 	public static Object InvokeMethod(String name, Object src, Object... parameters)
 	{
 		Class<?>[] parameterTypes = new Class<?>[parameters.length];
