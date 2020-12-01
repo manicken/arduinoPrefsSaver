@@ -120,7 +120,7 @@ public class manickenPrefSaver implements Tool {
 
 	private void Activate()
 	{
-		RenameFile(prefsFileNameInactive, prefsFileName);
+		if (!RenameFile(prefsFileNameInactive, prefsFileName)) System.out.println("@Activate codsn not rname");
 		//PrintCurrentPreferencesMap();
 		PreferencesMap pm = PreferencesData.getMap();
 		String[] keys = pm.keySet().toArray(new String[0]);
@@ -138,7 +138,7 @@ public class manickenPrefSaver implements Tool {
 
 	private void Deactivate()
 	{
-		RenameFile(prefsFileName, prefsFileNameInactive);
+		if (!RenameFile(prefsFileName, prefsFileNameInactive)) System.out.println("@Activate codsn not rname");
 	}
 
 	private boolean FileExists(String pathname)
@@ -324,14 +324,14 @@ public class manickenPrefSaver implements Tool {
 	public boolean RenameFile(String fromName, String toName)
 	{
 		// File (or directory) with old name
-		File file = new File(fromName);
+		File file = new File(sketch.getFolder() + "/" + fromName);
 
-		if (file.exists()) return false;
+		if (!file.exists()){ System.out.println("RenameFile first file dont"); return false;}
 
 		// File (or directory) with new name
-		File file2 = new File(toName);
+		File file2 = new File(sketch.getFolder() + "/" + toName);
 
-		if (file2.exists()) return false;
+		if (file2.exists()){ System.out.println("RenameFile second file exist"); return false; }
 
 		// Rename file (or directory)
 		return file.renameTo(file2);
