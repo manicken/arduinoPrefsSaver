@@ -120,6 +120,7 @@ public class manickenPrefSaver implements Tool {
 
 	private void Activate()
 	{
+		RenameFile(prefsFileNameInactive, prefsFileName);
 		//PrintCurrentPreferencesMap();
 		PreferencesMap pm = PreferencesData.getMap();
 		String[] keys = pm.keySet().toArray(new String[0]);
@@ -137,7 +138,7 @@ public class manickenPrefSaver implements Tool {
 
 	private void Deactivate()
 	{
-
+		RenameFile(prefsFileName, prefsFileNameInactive);
 	}
 
 	private boolean FileExists(String pathname)
@@ -318,5 +319,21 @@ public class manickenPrefSaver implements Tool {
 			file.write(contents);
 			file.close();
         } catch (IOException e) { e.printStackTrace(); }
+	}
+
+	public boolean RenameFile(String fromName, String toName)
+	{
+		// File (or directory) with old name
+		File file = new File(fromName);
+
+		if (file.exists()) return false;
+
+		// File (or directory) with new name
+		File file2 = new File(toName);
+
+		if (file2.exists()) return false;
+
+		// Rename file (or directory)
+		return file.renameTo(file2);
 	}
 }
