@@ -85,17 +85,23 @@ public class MyPreferencesData {
         prefs.put(attribute, value);
       }
 
-    public void mergeIntoGlobalPreferences()
+    public void mergeIntoGlobalPreferences(boolean printDebug)
     {
+        System.out.println("Merging Sketch Pref. into Global Pref.\n");
         String[] keys = prefs.keySet().toArray(new String[0]);
         for (String key : keys) {
             String value = prefs.get(key);
-            System.out.println("merging " + key +"="+ value);
+            if (printDebug)
+            System.out.println("merging: " + key +"="+ value);
             PreferencesData.set(key, value);
         }
+        System.out.println("");
     }
     
-    public void save() {
+    /**
+     * this is not used at the moment
+     */
+    public void save() { // 
 
         // on startup, don't worry about it
         // this is trying to update the prefs for who is open

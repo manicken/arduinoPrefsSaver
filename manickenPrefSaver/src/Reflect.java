@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
  */
 public class Reflect {
 
+	public static boolean printDebugInfo = false;
     public static Object GetField(String name, Object src) {
 		try {
 			Field f = src.getClass().getDeclaredField(name);
@@ -62,10 +63,13 @@ public class Reflect {
 	 */
 	public static Object InvokeMethod2(String name, Object src, Object[] parameters, Class<?>[] parameterTypes)
 	{
-		String debugInfo = "";
-		for (int i = 0; i < parameters.length; i++)
-			debugInfo += parameterTypes[i].toString() + "\n";
-		System.out.println(debugInfo);
+		if (printDebugInfo)
+		{
+			String debugInfo = "";
+			for (int i = 0; i < parameters.length; i++)
+				debugInfo += parameterTypes[i].toString() + "\n";
+			System.out.println(debugInfo);
+		}
 		try {
 			Method m = src.getClass().getDeclaredMethod(name, parameterTypes);
 			m.setAccessible(true);
