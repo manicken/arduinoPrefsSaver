@@ -76,6 +76,6 @@ issues:
 ### 1.0.1
 
 * fix double items at tools-menu
-* add setting, that autoclose other editors when open new or existing sketch
+* add setting, that auto close other editors when open new or existing sketch
 
 -----------------------------------------------------------------------------------------------------------
