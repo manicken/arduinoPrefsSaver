@@ -11,20 +11,20 @@ Plugin for Arduino IDE that make it possible to have "sketch site" selectable se
 * global (into sketchbook folder (defined in Arduino IDE - Preferenses):<br>
 &nbsp;&nbsp;make a new folder in the above defined sketchbook folder<br>
 &nbsp;&nbsp;called tools<br>
-&nbsp;&nbsp;then copy the API_WebServer from the repository into this new "tools" folder.<br>
+&nbsp;&nbsp;then copy the folder manickenPrefSaver from the repository into this new "tools" folder.<br>
 
 ### Alternative install
 
 * on windows / linux (into Arduino IDE install dir):<br>
-&nbsp;&nbsp;copy folder API_WebServer to [Arduino IDE install location]/tools directory<br>
+&nbsp;&nbsp;copy folder manickenPrefSaver to [Arduino IDE install location]/tools directory<br>
 &nbsp;&nbsp;ex: /Arduino-1.8.13/tools<br>
 
 * on mac (into Arduino IDE package):<br>
 &nbsp;&nbsp;In Applications right click and click on "Show Package Contents", then browse Contents -> Java -> tools<br>
-&nbsp;&nbsp;by holding the Option key(copy) drag folder API_WebServer from the downloaded repository to the open tools folder above<br>
+&nbsp;&nbsp;by holding the Option key(copy) drag folder manickenPrefSaver from the downloaded repository to the open tools folder above<br>
 &nbsp;&nbsp;select replace it you allready have an older version<br>
 
-## Compiling
+## Compiling (optional)
 
 Download and Install Java SDK8 (1.8) 32bit<br>
 (Arduino IDE uses Java 8 (1.8))<br>
