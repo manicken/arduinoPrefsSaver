@@ -14,6 +14,7 @@ public class SelectionDialog extends JPanel {
     public JCheckBox chkDebugMode;
     public JCheckBox chkRebuildExamplesMenu;
     public JCheckBox chkRebuildLibraryMenu;
+    public JCheckBox chkCloseOtherEditors;
     public JLabel lblItemList;
 
     public SelectionDialog() {
@@ -24,7 +25,11 @@ public class SelectionDialog extends JPanel {
         chkDebugMode = new JCheckBox ("Activate some debug output");
         chkRebuildExamplesMenu = new JCheckBox ("Rebuild Examples Menu");
         chkRebuildLibraryMenu = new JCheckBox ("Rebuild Library Menu");
+        chkCloseOtherEditors = new JCheckBox ("Close Other Editors");
         lblItemList = new JLabel ("Select items to save (not used yet):");
+
+        //set components properties
+        chkCloseOtherEditors.setToolTipText ("when enabled, and a new sketch is opened, the other sketches is automatically closed");
 
         //adjust size and set layout
         setPreferredSize (new Dimension (229, 487));
@@ -40,14 +45,16 @@ public class SelectionDialog extends JPanel {
         add (chkDebugMode);
         add (chkRebuildExamplesMenu);
         add (chkRebuildLibraryMenu);
+        add (chkCloseOtherEditors);
         add (lblItemList);
 
         //set component bounds (only needed by Absolute Positioning)
-        //lstItems.setBounds (5, 115, 220, 370);
-        chkDebugMode.setBounds (0, 5, 195, 25);
-        chkRebuildExamplesMenu.setBounds (0, 30, 175, 25);
-        chkRebuildLibraryMenu.setBounds (0, 55, 145, 20);
+        lstItems.setBounds (5, 115, 220, 370);
+        chkDebugMode.setBounds (0, 5, 195, 20);
+        chkRebuildExamplesMenu.setBounds (0, 25, 175, 20);
+        chkRebuildLibraryMenu.setBounds (0, 45, 145, 20);
         lblItemList.setBounds (5, 85, 220, 25);
+        chkCloseOtherEditors.setBounds (0, 65, 150, 20);
 
         
     }

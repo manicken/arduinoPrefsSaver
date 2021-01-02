@@ -4,7 +4,7 @@
   Part of the Processing project - http://processing.org
 
   Copyright (c) 2008 Ben Fry and Casey Reas
-  Copyright (c) 2020 Jannik Leif Simon Svensson (1984)- Sweden
+  Copyright (c) 2020 Jannik LS Svensson (1984)- Sweden
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -64,6 +64,7 @@ import java.util.List;
 import static processing.app.I18n.tr;
 
 import com.manicken.MyPreferencesData;
+import com.manicken.CustomMenu;
 import com.manicken.SelectionDialog;
 import com.manicken.Reflect;
 
@@ -74,6 +75,7 @@ public class manickenPrefSaver implements Tool {
 	boolean debugPrint = false;
 	boolean rebuildExamplesMenu = false; // maybe not needed after all
 	boolean rebuildLibraryMenu = false; // maybe not needed after all
+	boolean closeOtherEditors = true;
 
 	boolean useSeparateExtensionsMainMenu = true; // good for development for quick access
 
@@ -83,9 +85,9 @@ public class manickenPrefSaver implements Tool {
 	List<JMenu> boardsCustomMenus; // for the plugin uses reflection to get (from base)
 
 	MyPreferencesData myPrefs;
-	
-	JMenu toolsMenu; // for the plugin, uses reflection to get
-	
+
+	CustomMenu cm;
+
 	String thisToolMenuTitle = "Manicken Pref Saver";
 	//String rootDir;
 	String prefsFileName = "preferences.txt";
@@ -100,7 +102,7 @@ public class manickenPrefSaver implements Tool {
 		debugPrint = PreferencesData.getBoolean("manicken.prefSaver.debugPrint", debugPrint); 
 		rebuildExamplesMenu = PreferencesData.getBoolean("manicken.prefSaver.rebuildExamplesMenu", rebuildExamplesMenu); 
 		rebuildLibraryMenu = PreferencesData.getBoolean("manicken.prefSaver.rebuildLibraryMenu", rebuildLibraryMenu);
-		
+		closeOtherEditors = PreferencesData.getBoolean("manicken.prefSaver.closeOtherEditors", closeOtherEditors);
 
 		editor.addWindowListener(new WindowAdapter() {
 			public void windowOpened(WindowEvent e) {
@@ -163,7 +165,8 @@ public class manickenPrefSaver implements Tool {
 
 	private void init() {
 		System.out.println("init manicken Preferences Saver");
-
+		if (closeOtherEditors)
+		CloseOtherEditors(editor);
 		try{
 			
 			base = (Base) Reflect.GetField("base", this.editor);
@@ -175,11 +178,15 @@ public class manickenPrefSaver implements Tool {
 
 			LoadPrevPreferences();
 
-			if (useSeparateExtensionsMainMenu)
-				initAtSeparateExtensionsMenu();
-			else
-				initAtToolsMenu();
+			cm = new CustomMenu(this, editor, thisToolMenuTitle, 
+				new JMenuItem[] {
+					CustomMenu.Item("Activate/SaveCurrent", event -> Activate()),
+					CustomMenu.Item("Deactivate", event -> Deactivate()),
+					CustomMenu.Item("Settings", event -> ShowSelectionDialog()),
+				});
 
+			cm.Init(useSeparateExtensionsMainMenu);
+			
 			started = true;
 
 		} catch (Exception e) {
@@ -210,6 +217,9 @@ public class manickenPrefSaver implements Tool {
 
 						// this method messes the menu up but is the only known way of 
 						// apply the programmaly selected items
+						// the mess is gone with at the end
+						// editor.setVisible(false); // this triggers the componentHidden event 
+						// editor.setVisible(true);
 						base.rebuildBoardsMenu(); // throws exception
 
 						TargetBoard lastSelectedBoard = BaseNoGui.getTargetBoard();
@@ -235,16 +245,13 @@ public class manickenPrefSaver implements Tool {
 							BaseNoGui.selectBoard(lastSelectedBoard);
 
 							Reflect.printDebugInfo = debugPrint;
-							// this following method is very important
-							Reflect.InvokeMethod2("filterVisibilityOfSubsequentBoardMenus",base, asArr(boardsCustomMenus, lastSelectedBoard, 1), 
-																						asArr(List.class, TargetBoard.class, int.class));
+
+							// this following method is very important or maybe not
+							//Reflect.InvokeMethod2("filterVisibilityOfSubsequentBoardMenus",base, asArr(boardsCustomMenus, lastSelectedBoard, 1), 
+							//															asArr(List.class, TargetBoard.class, int.class));
 
 						}
 
-						
-						
-						
-						
 						if (debugPrint)	System.out.println("base.onBoardOrPortChange()");
 						base.onBoardOrPortChange();
 
@@ -267,6 +274,10 @@ public class manickenPrefSaver implements Tool {
 					{
 						e.printStackTrace();
 					}
+					myPrefs.mergeIntoGlobalPreferences(debugPrint);
+					
+					editor.setVisible(false); // this triggers the componentHidden event 
+					editor.setVisible(true);
 					System.out.println("Sketch board pref. load done!");
 				}
 			});
@@ -275,69 +286,12 @@ public class manickenPrefSaver implements Tool {
 
 	public static <T> T[] asArr(T... params) { return params; } // a little helper when using above method
 
-	private void initAtSeparateExtensionsMenu()
-	{
-		JMenuBar menubar = editor.getJMenuBar();
-		int existingExtensionsMenuIndex = GetMenuBarItemIndex(menubar, tr("Extensions"));
-		int toolsMenuIndex = GetMenuBarItemIndex(menubar, tr("Tools"));
-		JMenu extensionsMenu = null;
-		
-		if (existingExtensionsMenuIndex == -1)
-			extensionsMenu = new JMenu(tr("Extensions"));
-		else
-			extensionsMenu = (JMenu)menubar.getSubElements()[existingExtensionsMenuIndex];
-
-		JMenu thisToolMenu = new JMenu(thisToolMenuTitle);	
-
-		if (existingExtensionsMenuIndex == -1)
-			menubar.add(extensionsMenu, toolsMenuIndex+1);
-		menubar.revalidate(); // "repaint" menu bar with the new item
-		extensionsMenu.add(thisToolMenu);
-		// create new special menu
-		CreatePluginMenu(thisToolMenu);
-
-		// remove original menu at the moment sometimes buggy
-		//JMenu toolsMenu = (JMenu) Reflect.GetField("toolsMenu", this.editor);
-		//PrintMenuItems(toolsMenu);
-		//int thisToolMenuIndex = GetMenuItemIndex(toolsMenu, thisToolMenuTitle);
-		//toolsMenu.remove(thisToolMenuIndex);
-		//toolsMenu.revalidate();
-	}
-
-	private void initAtToolsMenu()
-	{
-		toolsMenu = (JMenu) Reflect.GetField("toolsMenu", this.editor);
-		int thisToolIndex = GetMenuItemIndex(toolsMenu, thisToolMenuTitle);
-		JMenu thisToolMenu = new JMenu(thisToolMenuTitle);
-		// create new special menu
-		CreatePluginMenu(thisToolMenu);
-		// replace original menu
-		toolsMenu.remove(thisToolIndex);
-		toolsMenu.insert(thisToolMenu, thisToolIndex);
-	}
-
-	private void CreatePluginMenu(JMenu thisToolMenu)
-	{
-		JMenuItem newItem = null;
-
-		newItem = new JMenuItem("Activate/SaveCurrent");
-		thisToolMenu.add(newItem);
-		newItem.addActionListener(event -> Activate());
-		
-		newItem = new JMenuItem("Deactivate");
-		thisToolMenu.add(newItem);
-		newItem.addActionListener(event -> Deactivate());
-
-		newItem = new JMenuItem("Select Items To Save");
-		thisToolMenu.add(newItem);
-		newItem.addActionListener(event -> ShowSelectionDialog());
-	}
-
 	public void ShowSelectionDialog() { // 
 		SelectionDialog sd = new SelectionDialog();
 		sd.chkDebugMode.setSelected(debugPrint);
 		sd.chkRebuildExamplesMenu.setSelected(rebuildExamplesMenu);
 		sd.chkRebuildLibraryMenu.setSelected(rebuildLibraryMenu);
+		sd.chkCloseOtherEditors.setSelected(closeOtherEditors);
 		sd.lstItems.setListData(GetCurrentPreferencesMap(true));
 		
 	   int result = JOptionPane.showConfirmDialog(editor, sd, "manickenPrefSaver Config" ,JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -347,54 +301,14 @@ public class manickenPrefSaver implements Tool {
 			debugPrint = sd.chkDebugMode.isSelected();
 			rebuildExamplesMenu = sd.chkRebuildExamplesMenu.isSelected();
 			rebuildLibraryMenu = sd.chkRebuildLibraryMenu.isSelected();
+			closeOtherEditors = sd.chkCloseOtherEditors.isSelected();
 
 			PreferencesData.setBoolean("manicken.prefSaver.debugPrint", debugPrint);
 			PreferencesData.setBoolean("manicken.prefSaver.rebuildExamplesMenu", rebuildExamplesMenu);
 			PreferencesData.setBoolean("manicken.prefSaver.rebuildLibraryMenu", rebuildLibraryMenu);
+			PreferencesData.setBoolean("manicken.prefSaver.closeOtherEditors", closeOtherEditors);
 
 		} else { System.out.println("Cancelled"); }
-	}
-
-	public int GetMenuItemIndex(JMenu menu, String name) {
-		//System.out.println("try get menu: " + name);
-		for ( int i = 0; i < menu.getItemCount(); i++) {
-			//System.out.println("try get menu item @ " + i);
-			JMenuItem item = menu.getItem(i);
-			if (item == null) continue; // happens on seperators
-			if (item.getText() == name)
-				return i;
-		}
-		return -1;
-	}
-
-	public void PrintMenuItems(JMenu menu) {
-		for ( int i = 0; i < menu.getItemCount(); i++) {
-			JMenuItem item = menu.getItem(i);
-			if (item == null) continue; // happens on seperators
-			System.out.println(item.getText() + " " + item.isVisible());
-		}
-	}
-
-	/**
-	 * Experimental way of getting tools menu, not working at the moment
-	 * @param menuBar
-	 * @param name
-	 * @return
-	 */
-	public int GetMenuBarItemIndex(JMenuBar menuBar, String name) {
-		//System.out.println("try get menu: " + name);
-		MenuElement[] items = menuBar.getSubElements();
-		for ( int i = 0; i < items.length; i++) {
-			//System.out.println("try get menu item @ " + i);
-			JMenu menu = (JMenu)items[i];
-			if (items[i] == null) continue; // happens on seperators
-
-			//System.out.println("menu.getText(): "+ menu.getText());
-
-			if (menu.getText() == name)
-				return i;
-		}
-		return -1;
 	}
 
 	/**
@@ -425,5 +339,20 @@ public class manickenPrefSaver implements Tool {
 
 		// Rename file (or directory)
 		return file.renameTo(file2);
+	}
+
+	public void CloseOtherEditors(Editor thisEditor)
+	{
+		Base _base = (Base) Reflect.GetField("base", thisEditor);
+		List<Editor> editors = _base.getEditors();
+		boolean anyStopped = false;
+		for (int ei = 0; ei < editors.size(); ei++)
+		{
+			Editor _editor = editors.get(ei);
+			if (thisEditor == _editor)
+				continue;
+			
+			_base.handleClose(_editor); // close other
+		}
 	}
 }

@@ -1,7 +1,8 @@
 @echo off
 
 set arduinoInstallDir=G:\arduino-1.8.13
-set arduinoSketchbookDir=%HOMEDRIVE%%HOMEPATH%\Documents\Arduino
+#set arduinoSketchbookDir=%HOMEDRIVE%%HOMEPATH%\Documents\Arduino
+set arduinoSketchbookDir=G:\ArduinoSketchbook
 set className=manickenPrefSaver
 
 #cleanup
