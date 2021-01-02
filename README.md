@@ -1,5 +1,7 @@
 # arduinoPrefsSaver
-Plugin for Arduino IDE that make it possible to have "sketch site" selectable settings (preferences)
+Plugin for Arduino IDE that make it possible to have "sketch site" selectable settings (preferences)<br>
+Only board settings are saved for the moment, <br>
+as that is the most requested feature.<br>
 
 ## Install
 
